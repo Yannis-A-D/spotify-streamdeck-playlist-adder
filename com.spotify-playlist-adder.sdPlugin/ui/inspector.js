@@ -204,7 +204,9 @@ function populatePlaylists(playlists, selectedId) {
     for (const pl of playlists) {
       const opt = document.createElement("option");
       opt.value = pl.id;
-      opt.textContent = `${pl.name} (${pl.total} tracks)`;
+      opt.dataset.name = pl.name;
+      // Only display song count if Spotify returned an actual number > 0
+      opt.textContent = (pl.total && pl.total > 0) ? `${pl.name} (${pl.total} songs)` : pl.name;
       if (selectedId && pl.id === selectedId) {
         opt.selected = true;
       }

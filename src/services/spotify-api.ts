@@ -132,7 +132,7 @@ export class SpotifyApi {
    */
   public static async getUserPlaylists(accessToken: string, maxPlaylists = 150): Promise<Array<{ id: string; name: string; total: number }>> {
     const playlists: Array<{ id: string; name: string; total: number }> = [];
-    let nextUrl: string | null = `https://api.spotify.com/v1/me/playlists?limit=50`;
+    let nextUrl: string | null = `https://api.spotify.com/v1/me/playlists?limit=50&timestamp=${Date.now()}`;
 
     while (nextUrl && playlists.length < maxPlaylists) {
       const response = await fetch(nextUrl, {
