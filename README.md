@@ -1,5 +1,9 @@
 # Spotify Playlist Adder — Stream Deck Plugin
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Stream Deck SDK](https://img.shields.io/badge/Stream%20Deck-SDK%20v2-0078D4.svg)](https://docs.elgato.com/)
+[![Spotify Web API](https://img.shields.io/badge/Spotify-Web%20API-1DB954.svg)](https://developer.spotify.com/)
+
 An Elgato Stream Deck plugin that lets you add the song currently playing on Spotify to a pre-selected playlist with a single button press.
 
 **Smart Deduplication:** If the song is already in the playlist, it will **not** add it a second time and gives you visual feedback on the button so you know it's already saved.
@@ -119,5 +123,10 @@ spotify-streamdeck-playlist-adder/
 
 ---
 
-## License
-MIT
+## 📄 License
+
+This project is open source and available under the terms of the [MIT License](LICENSE).
+
+---
+
+<sub>🤖 *Disclosure: This README and documentation were generated with the assistance of AI.*</sub>
