@@ -67,6 +67,7 @@
         <label for="playlistSelect">Select Playlist for this Button:</label>
         <select id="playlistSelect">
           <option value="">-- Choose a playlist --</option>
+          <option value="__liked_songs__">💚 Liked Songs (Lieblingssongs)</option>
         </select>
       </div>
 
@@ -81,11 +82,19 @@
 
     <!-- Action Settings Card -->
     <div id="optionsCard" class="card">
-      <div class="card-title">Button Display</div>
-      <label class="checkbox-label">
-        <input type="checkbox" id="showTrackTitleCheckbox" checked />
-        <span>Show track / playlist name on key</span>
-      </label>
+      <div class="card-title">Button Display & Feedback</div>
+      <div class="field-group" style="margin-bottom: 8px;">
+        <label class="checkbox-label">
+          <input type="checkbox" id="showAlbumArtCheckbox" checked />
+          <span>Flash dynamic album art on button</span>
+        </label>
+      </div>
+      <div class="field-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="showTrackTitleCheckbox" checked />
+          <span>Show track / playlist name on key</span>
+        </label>
+      </div>
     </div>
   </div>
 

@@ -267,6 +267,117 @@ export class SpotifyApi {
   }
 
   /**
+   * Checks if a track is in the user's Liked Songs library.
+   */
+  public static async isLikedSong(accessToken: string, trackId: string): Promise<boolean> {
+    const response = await fetch(`https://api.spotify.com/v1/me/tracks/contains?ids=${trackId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      streamDeck.logger.warn(`Failed to check if song is liked (${response.status}): ${errorText}`);
+      return false;
+    }
+
+    const data = (await response.json()) as boolean[];
+    return Boolean(data && data[0]);
+  }
+
+  /**
+   * Adds a track to the user's Liked Songs library.
+   */
+  public static async addToLikedSongs(accessToken: string, trackId: string): Promise<void> {
+    const response = await fetch(`https://api.spotify.com/v1/me/tracks`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        ids: [trackId]
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to add song to Liked Songs (${response.status}): ${errorText}`);
+    }
+  }
+
+  /**
+   * Downloads album cover and converts it to a base64 data URI.
+   */
+  public static async fetchAlbumArtBase64(imageUrl: string): Promise<string | null> {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) return null;
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString("base64");
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      return `data:${contentType};base64,${base64}`;
+    } catch (err) {
+      streamDeck.logger.warn(`Could not download album art: ${err}`);
+      return null;
+    }
+  }
+
+  /**
+   * Generates a high-quality SVG data URI for Stream Deck displaying album art and action status badge.
+   */
+  public static generateFeedbackImage(options: {
+    albumArtDataUri?: string | null;
+    badge: "success_playlist" | "success_liked" | "duplicate" | "nothing";
+    trackTitle?: string;
+    artist?: string;
+  }): string {
+    const { albumArtDataUri, badge, trackTitle, artist } = options;
+
+    let badgeSvg = "";
+    if (badge === "success_playlist") {
+      badgeSvg = `
+        <circle cx="116" cy="28" r="18" fill="#1DB954" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
+        <path d="M107 28l6 6 12-12" stroke="#000" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      `;
+    } else if (badge === "success_liked") {
+      badgeSvg = `
+        <circle cx="116" cy="28" r="18" fill="#1DB954" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
+        <path d="M116 35s-8-5.2-8-9.4c0-2.3 1.8-4.1 4.1-4.1 1.7 0 3.2 1 3.9 2.4.7-1.4 2.2-2.4 3.9-2.4 2.3 0 4.1 1.8 4.1 4.1 0 4.2-8 9.4-8 9.4z" fill="#000"/>
+      `;
+    } else if (badge === "duplicate") {
+      badgeSvg = `
+        <circle cx="116" cy="28" r="18" fill="#f59e0b" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
+        <path d="M116 19v10M116 33v2" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>
+      `;
+    }
+
+    const titleEscaped = escapeSvg(trackTitle ? (trackTitle.length > 15 ? trackTitle.slice(0, 14) + "..." : trackTitle) : "");
+    const artistEscaped = escapeSvg(artist ? (artist.length > 18 ? artist.slice(0, 17) + "..." : artist) : "");
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+        <rect width="144" height="144" rx="20" fill="#121212"/>
+        ${albumArtDataUri ? `<clipPath id="clip"><rect width="144" height="144" rx="20"/></clipPath><image href="${albumArtDataUri}" width="144" height="144" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip)"/>` : ""}
+        <rect y="84" width="144" height="60" rx="20" fill="url(#bottomGrad)"/>
+        <defs>
+          <linearGradient id="bottomGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(0,0,0,0)"/>
+            <stop offset="40%" stop-color="rgba(0,0,0,0.7)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,0.95)"/>
+          </linearGradient>
+        </defs>
+        ${badgeSvg}
+        ${titleEscaped ? `<text x="72" y="118" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" text-anchor="middle">${titleEscaped}</text>` : ""}
+        ${artistEscaped ? `<text x="72" y="133" fill="#b3b3b3" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" text-anchor="middle">${artistEscaped}</text>` : ""}
+      </svg>
+    `;
+
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.trim())}`;
+  }
+
+  /**
    * Clears cached tracks for a specific playlist or all playlists.
    */
   public static clearCache(playlistId?: string): void {
@@ -332,4 +443,13 @@ export class SpotifyApi {
 
     return trackSet;
   }
+}
+
+function escapeSvg(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }

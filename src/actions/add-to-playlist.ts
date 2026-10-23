@@ -10,17 +10,16 @@ import streamDeck, {
 import type { JsonValue } from "@elgato/utils";
 import { SpotifyApi } from "../services/spotify-api.js";
 import { SpotifyAuth } from "../services/spotify-auth.js";
-import { MessageToPlugin, SpotifyActionSettings } from "../types/spotify.js";
+import { LIKED_SONGS_PLAYLIST_ID, MessageToPlugin, SpotifyActionSettings } from "../types/spotify.js";
 
 @action({ UUID: "com.spotify-playlist-adder.add" })
 export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> {
-  private titleResetTimers = new Map<string, NodeJS.Timeout>();
+  private feedbackResetTimers = new Map<string, NodeJS.Timeout>();
 
   /**
    * Action key pressed down by the user.
    */
   override async onKeyDown(ev: KeyDownEvent<SpotifyActionSettings>): Promise<void> {
-    const actionId = ev.action.id;
     const settings = ev.payload.settings;
 
     try {
@@ -29,17 +28,19 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
       if (!isConnected) {
         streamDeck.logger.warn("Key pressed but Spotify is not connected.");
         await ev.action.showAlert();
-        this.setTemporaryTitle(ev.action, "Connect\nSpotify", 2500);
+        this.setTemporaryFeedback(ev.action, { title: "Connect\nSpotify", durationMs: 2500 });
         return;
       }
 
       // 2. Check if a target playlist is selected
       const playlistId = settings.playlistId;
-      const playlistName = settings.playlistName || "Playlist";
+      const isLikedSongs = playlistId === LIKED_SONGS_PLAYLIST_ID;
+      const playlistName = isLikedSongs ? "Liked Songs" : (settings.playlistName || "Playlist");
+
       if (!playlistId) {
         streamDeck.logger.warn("Key pressed but no playlist is selected in settings.");
         await ev.action.showAlert();
-        this.setTemporaryTitle(ev.action, "Select\nPlaylist", 2500);
+        this.setTemporaryFeedback(ev.action, { title: "Select\nPlaylist", durationMs: 2500 });
         return;
       }
 
@@ -51,7 +52,7 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
       if (!track) {
         streamDeck.logger.info("Nothing is currently playing on Spotify.");
         await ev.action.showAlert();
-        this.setTemporaryTitle(ev.action, "Nothing\nPlaying", 2500);
+        this.setTemporaryFeedback(ev.action, { title: "Nothing\nPlaying", durationMs: 2500 });
         return;
       }
 
@@ -64,36 +65,107 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
 
       streamDeck.logger.info(`Detected track: "${trackTitle}" by ${artist} (${trackUri})`);
 
-      // 5. Check if track already exists in the playlist (Deduplication)
-      let alreadyInPlaylist = false;
-      try {
-        alreadyInPlaylist = await SpotifyApi.isTrackInPlaylist(accessToken, playlistId, trackUri, trackId);
-      } catch (checkErr) {
-        streamDeck.logger.warn(`Could not verify duplicate status: ${checkErr}`);
+      // 5. Download Album Art if enabled (default true)
+      let albumArtDataUri: string | null = null;
+      if (settings.showAlbumArt !== false && track.album?.images && track.album.images.length > 0) {
+        const chosenImage = track.album.images.find((img) => img.width === 300) || track.album.images[0];
+        if (chosenImage?.url) {
+          albumArtDataUri = await SpotifyApi.fetchAlbumArtBase64(chosenImage.url);
+        }
       }
 
-      if (alreadyInPlaylist) {
-        streamDeck.logger.info(`Track "${trackTitle}" is already in playlist "${playlistName}". Not adding duplicate.`);
-        await ev.action.showAlert();
-        this.setTemporaryTitle(ev.action, "Already in\nplaylist!", 2500);
-        return;
-      }
+      // 6. Branch: Liked Songs vs Custom Playlist
+      if (isLikedSongs) {
+        // Liked Songs Deduplication
+        let alreadyLiked = false;
+        try {
+          alreadyLiked = await SpotifyApi.isLikedSong(accessToken, trackId);
+        } catch (checkErr) {
+          streamDeck.logger.warn(`Could not verify liked songs status: ${checkErr}`);
+        }
 
-      // 6. Add track to the chosen playlist
-      await SpotifyApi.addTrackToPlaylist(accessToken, playlistId, trackUri);
-      streamDeck.logger.info(`Successfully added "${trackTitle}" to "${playlistName}".`);
+        if (alreadyLiked) {
+          streamDeck.logger.info(`Track "${trackTitle}" is already in Liked Songs. Skipped duplicate.`);
+          await ev.action.showAlert();
+          if (albumArtDataUri) {
+            const fbImage = SpotifyApi.generateFeedbackImage({
+              albumArtDataUri,
+              badge: "duplicate",
+              trackTitle,
+              artist
+            });
+            await this.setTemporaryFeedback(ev.action, { image: fbImage, durationMs: 3000 });
+          } else {
+            this.setTemporaryFeedback(ev.action, { title: "Already in\nLiked Songs!", durationMs: 2500 });
+          }
+          return;
+        }
 
-      // 7. Visual feedback: Stream Deck checkmark & optional title feedback
-      await ev.action.showOk();
-      if (settings.showTrackTitleOnKey !== false) {
-        const truncated = trackTitle.length > 18 ? trackTitle.slice(0, 16) + "..." : trackTitle;
-        this.setTemporaryTitle(ev.action, `Added!\n${truncated}`, 2500);
+        // Add to Liked Songs
+        await SpotifyApi.addToLikedSongs(accessToken, trackId);
+        streamDeck.logger.info(`Successfully added "${trackTitle}" to Liked Songs.`);
+
+        await ev.action.showOk();
+        if (albumArtDataUri) {
+          const fbImage = SpotifyApi.generateFeedbackImage({
+            albumArtDataUri,
+            badge: "success_liked",
+            trackTitle,
+            artist
+          });
+          await this.setTemporaryFeedback(ev.action, { image: fbImage, durationMs: 3500 });
+        } else {
+          this.setTemporaryFeedback(ev.action, { title: "Saved to\nLiked Songs 💚", durationMs: 2500 });
+        }
+      } else {
+        // Custom Playlist Deduplication
+        let alreadyInPlaylist = false;
+        try {
+          alreadyInPlaylist = await SpotifyApi.isTrackInPlaylist(accessToken, playlistId, trackUri, trackId);
+        } catch (checkErr) {
+          streamDeck.logger.warn(`Could not verify duplicate status: ${checkErr}`);
+        }
+
+        if (alreadyInPlaylist) {
+          streamDeck.logger.info(`Track "${trackTitle}" is already in playlist "${playlistName}". Skipped duplicate.`);
+          await ev.action.showAlert();
+          if (albumArtDataUri) {
+            const fbImage = SpotifyApi.generateFeedbackImage({
+              albumArtDataUri,
+              badge: "duplicate",
+              trackTitle,
+              artist
+            });
+            await this.setTemporaryFeedback(ev.action, { image: fbImage, durationMs: 3000 });
+          } else {
+            this.setTemporaryFeedback(ev.action, { title: "Already in\nplaylist!", durationMs: 2500 });
+          }
+          return;
+        }
+
+        // Add to chosen playlist
+        await SpotifyApi.addTrackToPlaylist(accessToken, playlistId, trackUri);
+        streamDeck.logger.info(`Successfully added "${trackTitle}" to "${playlistName}".`);
+
+        await ev.action.showOk();
+        if (albumArtDataUri) {
+          const fbImage = SpotifyApi.generateFeedbackImage({
+            albumArtDataUri,
+            badge: "success_playlist",
+            trackTitle,
+            artist
+          });
+          await this.setTemporaryFeedback(ev.action, { image: fbImage, durationMs: 3500 });
+        } else if (settings.showTrackTitleOnKey !== false) {
+          const truncated = trackTitle.length > 18 ? trackTitle.slice(0, 16) + "..." : trackTitle;
+          this.setTemporaryFeedback(ev.action, { title: `Added!\n${truncated}`, durationMs: 2500 });
+        }
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      streamDeck.logger.error(`Error adding track to playlist: ${errMsg}`);
+      streamDeck.logger.error(`Error processing track: ${errMsg}`);
       await ev.action.showAlert();
-      this.setTemporaryTitle(ev.action, "Error!", 2500);
+      this.setTemporaryFeedback(ev.action, { title: "Error!", durationMs: 2500 });
     }
   }
 
@@ -163,7 +235,6 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
             message: `Connected as ${result.userDisplayName}!`
           });
 
-          // Fetch playlists immediately for the user
           const token = await SpotifyAuth.getValidAccessToken();
           const playlists = await SpotifyApi.getUserPlaylists(token);
 
@@ -233,7 +304,6 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
 
         await action.setSettings(updatedSettings);
 
-        // Update button title to reflect playlist name
         if (payload.playlistName && updatedSettings.showTrackTitleOnKey !== false) {
           const name = payload.playlistName.length > 16
             ? payload.playlistName.slice(0, 14) + "..."
@@ -241,7 +311,6 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
           await action.setTitle(name);
         }
 
-        // Clear cached tracks for previous playlist
         SpotifyApi.clearCache();
         break;
       }
@@ -284,18 +353,34 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
   }
 
   /**
-   * Helper to show a temporary title on the key, restoring the previous title after duration.
+   * Shows temporary feedback (title and/or dynamic album art image), then restores original state.
    */
-  private setTemporaryTitle(action: { id: string; setTitle: (title?: string) => Promise<void>; getSettings: () => Promise<SpotifyActionSettings> }, title: string, durationMs: number): void {
-    const existingTimer = this.titleResetTimers.get(action.id);
+  private setTemporaryFeedback(
+    action: {
+      id: string;
+      setTitle: (title?: string) => Promise<void>;
+      setImage: (image?: string) => Promise<void>;
+      getSettings: () => Promise<SpotifyActionSettings>;
+    },
+    options: { title?: string; image?: string; durationMs: number }
+  ): void {
+    const existingTimer = this.feedbackResetTimers.get(action.id);
     if (existingTimer) {
       clearTimeout(existingTimer);
     }
 
-    action.setTitle(title).catch(() => {});
+    if (options.title !== undefined) {
+      action.setTitle(options.title).catch(() => {});
+    }
+    if (options.image !== undefined) {
+      action.setImage(options.image).catch(() => {});
+    }
 
     const timer = setTimeout(async () => {
       try {
+        // Reset image back to manifest default
+        await action.setImage(undefined);
+
         const currentSettings = await action.getSettings();
         if (currentSettings.playlistName && currentSettings.showTrackTitleOnKey !== false) {
           const name = currentSettings.playlistName.length > 16
@@ -308,10 +393,10 @@ export class AddToPlaylistAction extends SingletonAction<SpotifyActionSettings> 
       } catch {
         // ignore
       } finally {
-        this.titleResetTimers.delete(action.id);
+        this.feedbackResetTimers.delete(action.id);
       }
-    }, durationMs);
+    }, options.durationMs);
 
-    this.titleResetTimers.set(action.id, timer);
+    this.feedbackResetTimers.set(action.id, timer);
   }
 }

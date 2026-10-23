@@ -13,14 +13,17 @@ An Elgato Stream Deck plugin that lets you add the song currently playing on Spo
 ## Features
 
 - 🎵 **One-Click Playlist Saving:** Press the key on your Stream Deck to instantly add the currently playing Spotify song to your chosen playlist.
-- 🛡️ **Duplicate Prevention (Smart Deduplication):** Checks your playlist's existing songs before adding. If the track is already in the playlist, it safely skips adding it and notifies you on the key.
-- 🔀 **Multiple Playlists Support:** Assign different buttons to different playlists (e.g., one button for *"Gym Vibes"*, another for *"Chill"*, and another for *"Discoveries"*).
+- 🖼️ **Dynamic Album Art Flash:** The key dynamically displays the song's actual **high-res album cover** with a glowing green badge when saved!
+- 💚 **Liked Songs (Your Library) Support:** Add directly to your Spotify **"Liked Songs"** (Lieblingssongs) or any custom playlist.
+- 🛡️ **Duplicate Prevention (Smart Deduplication):** Checks your playlist or Liked Songs before adding. If the track is already saved, it safely skips adding it and notifies you on the key.
+- 🔀 **Multiple Playlists Support:** Assign different buttons to different playlists (e.g., one button for *"Gym Vibes"*, another for *"Chill"*, and another for *"Liked Songs"*).
 - 🔄 **Automatic Token Refresh:** Uses Spotify OAuth 2.0 with offline refresh tokens so you only have to log in once.
-- 🎨 **Visual Feedback on Key:** 
-  - **Success:** Green checkmark animation + song title displayed on the key.
-  - **Already in Playlist:** Alert icon + *"Already in playlist!"* notification.
+- 🎨 **Rich Visual Feedback on Key:** 
+  - **Success (Playlist):** Album art + Spotify-green checkmark overlay.
+  - **Success (Liked Songs):** Album art + glowing heart badge overlay.
+  - **Already Saved:** Album art + amber duplicate alert badge.
   - **Nothing Playing / Not Connected:** Informative alert warning.
-- 🖥️ **Native Property Inspector:** Easy dropdown menu to browse and select all your Spotify playlists with a one-click refresh button.
+- 🖥️ **Native Property Inspector:** Dropdown menu to browse and select all your Spotify playlists with a one-click refresh button.
 
 ---
 

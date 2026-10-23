@@ -18,6 +18,7 @@ const authStatusMessage = document.getElementById("authStatusMessage");
 const playlistSelect = document.getElementById("playlistSelect");
 const refreshPlaylistsBtn = document.getElementById("refreshPlaylistsBtn");
 const showTrackTitleCheckbox = document.getElementById("showTrackTitleCheckbox");
+const showAlbumArtCheckbox = document.getElementById("showAlbumArtCheckbox");
 
 /**
  * Standard Elgato Property Inspector WebSocket initialization entrypoint.
@@ -36,6 +37,9 @@ window.connectElgatoStreamDeckSocket = function (
   // Initialize UI with action settings
   if (currentSettings.showTrackTitleOnKey !== undefined) {
     showTrackTitleCheckbox.checked = currentSettings.showTrackTitleOnKey;
+  }
+  if (currentSettings.showAlbumArt !== undefined && showAlbumArtCheckbox) {
+    showAlbumArtCheckbox.checked = currentSettings.showAlbumArt;
   }
 
   // Connect to Stream Deck WebSocket
@@ -62,6 +66,9 @@ window.connectElgatoStreamDeckSocket = function (
         currentSettings = data.payload.settings || {};
         if (currentSettings.showTrackTitleOnKey !== undefined) {
           showTrackTitleCheckbox.checked = currentSettings.showTrackTitleOnKey;
+        }
+        if (currentSettings.showAlbumArt !== undefined && showAlbumArtCheckbox) {
+          showAlbumArtCheckbox.checked = currentSettings.showAlbumArt;
         }
         if (currentSettings.playlistId && playlistSelect) {
           playlistSelect.value = currentSettings.playlistId;
@@ -184,22 +191,25 @@ function handleAuthProgress(data) {
 function populatePlaylists(playlists, selectedId) {
   playlistSelect.innerHTML = '<option value="">-- Choose a playlist --</option>';
 
-  if (!playlists || playlists.length === 0) {
-    const opt = document.createElement("option");
-    opt.disabled = true;
-    opt.textContent = "No playlists found";
-    playlistSelect.appendChild(opt);
-    return;
+  // Always add Liked Songs as top choice
+  const likedOpt = document.createElement("option");
+  likedOpt.value = "__liked_songs__";
+  likedOpt.textContent = "💚 Liked Songs (Lieblingssongs)";
+  if (selectedId === "__liked_songs__") {
+    likedOpt.selected = true;
   }
+  playlistSelect.appendChild(likedOpt);
 
-  for (const pl of playlists) {
-    const opt = document.createElement("option");
-    opt.value = pl.id;
-    opt.textContent = `${pl.name} (${pl.total} tracks)`;
-    if (selectedId && pl.id === selectedId) {
-      opt.selected = true;
+  if (playlists && playlists.length > 0) {
+    for (const pl of playlists) {
+      const opt = document.createElement("option");
+      opt.value = pl.id;
+      opt.textContent = `${pl.name} (${pl.total} tracks)`;
+      if (selectedId && pl.id === selectedId) {
+        opt.selected = true;
+      }
+      playlistSelect.appendChild(opt);
     }
-    playlistSelect.appendChild(opt);
   }
 }
 
@@ -253,8 +263,13 @@ refreshPlaylistsBtn.addEventListener("click", () => {
 
 playlistSelect.addEventListener("change", () => {
   const playlistId = playlistSelect.value;
-  const selectedOption = playlistSelect.options[playlistSelect.selectedIndex];
-  const playlistName = playlistId && selectedOption ? selectedOption.text.replace(/\s\(\d+\stracks\)$/, "") : "";
+  let playlistName = "";
+  if (playlistId === "__liked_songs__") {
+    playlistName = "Liked Songs";
+  } else if (playlistId) {
+    const selectedOption = playlistSelect.options[playlistSelect.selectedIndex];
+    playlistName = selectedOption ? selectedOption.text.replace(/\s\(\d+\stracks\)$/, "") : "";
+  }
 
   saveActionSettings({
     playlistId: playlistId,
@@ -271,5 +286,11 @@ playlistSelect.addEventListener("change", () => {
 showTrackTitleCheckbox.addEventListener("change", () => {
   saveActionSettings({
     showTrackTitleOnKey: showTrackTitleCheckbox.checked
+  });
+});
+
+showAlbumArtCheckbox.addEventListener("change", () => {
+  saveActionSettings({
+    showAlbumArt: showAlbumArtCheckbox.checked
   });
 });

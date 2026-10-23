@@ -11,10 +11,13 @@ export type SpotifyGlobalSettings = JsonObject & {
   userEmail?: string;
 };
 
+export const LIKED_SONGS_PLAYLIST_ID = "__liked_songs__";
+
 export type SpotifyActionSettings = JsonObject & {
   playlistId?: string;
   playlistName?: string;
   showTrackTitleOnKey?: boolean;
+  showAlbumArt?: boolean;
 };
 
 export interface SpotifyTrack {
