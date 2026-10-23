@@ -1,6 +1,7 @@
 # Spotify Playlist Adder — Stream Deck Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/Release-v1.0.0-1DB954.svg)](https://github.com/Yannis-A-D/spotify-streamdeck-playlist-adder/releases/latest)
 [![Stream Deck SDK](https://img.shields.io/badge/Stream%20Deck-SDK%20v2-0078D4.svg)](https://docs.elgato.com/)
 [![Spotify Web API](https://img.shields.io/badge/Spotify-Web%20API-1DB954.svg)](https://developer.spotify.com/)
 
