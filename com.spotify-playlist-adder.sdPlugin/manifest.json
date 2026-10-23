@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Author": "Yannis",
+  "Category": "Spotify Playlist Adder",
+  "CategoryIcon": "imgs/category-icon",
+  "CodePath": "bin/plugin.js",
+  "Description": "Instantly add the currently playing Spotify song to your chosen playlist with smart duplicate prevention.",
+  "Icon": "imgs/plugin-icon",
+  "Name": "Spotify Playlist Adder",
+  "SDKVersion": 2,
+  "Nodejs": {
+    "Version": "20"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "12"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "6.5"
+  },
+  "UUID": "com.spotify-playlist-adder",
+  "Version": "1.0.0.0",
+  "Actions": [
+    {
+      "UUID": "com.spotify-playlist-adder.add",
+      "Name": "Add Current Song",
+      "Tooltip": "Adds currently playing Spotify song to your selected playlist without duplicating.",
+      "Icon": "imgs/actions/add-to-playlist",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/inspector.html",
+      "States": [
+        {
+          "Image": "imgs/actions/add-to-playlist",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ]
+    }
+  ]
+}

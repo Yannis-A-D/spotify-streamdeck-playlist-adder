@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Spotify Playlist Adder - Settings</title>
+  <link rel="stylesheet" href="inspector.css" />
+</head>
+<body>
+  <div class="sdpi-container">
+    <!-- Header -->
+    <div class="header">
+      <img src="../imgs/plugin-icon.png" width="26" height="26" style="border-radius: 5px;" alt="Logo" />
+      <h2>Spotify Playlist Adder</h2>
+    </div>
+
+    <!-- Status Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>Account Status</span>
+        <button id="disconnectBtn" class="btn-danger hidden">Disconnect</button>
+      </div>
+      <div id="statusBadge" class="status-badge disconnected">
+        <span class="status-dot"></span>
+        <span id="statusText">Not connected</span>
+      </div>
+    </div>
+
+    <!-- Spotify Setup / Connect Card (Shown when disconnected) -->
+    <div id="setupCard" class="card">
+      <div class="card-title">Link Spotify Account</div>
+      <div class="field-group">
+        <label for="clientIdInput">Spotify Client ID</label>
+        <input type="text" id="clientIdInput" placeholder="Enter your Spotify Client ID" spellcheck="false" />
+      </div>
+      <div class="field-group">
+        <label for="clientSecretInput">Spotify Client Secret</label>
+        <input type="password" id="clientSecretInput" placeholder="Enter your Spotify Client Secret" spellcheck="false" />
+      </div>
+
+      <div style="margin-top: 10px;">
+        <button id="connectBtn" class="btn-primary">
+          <span id="connectBtnSpinner" class="spinner hidden"></span>
+          <span id="connectBtnText">Connect Spotify</span>
+        </button>
+      </div>
+
+      <div id="authStatusMessage" style="margin-top: 8px; font-size: 11px; color: #a0a0a0; text-align: center;"></div>
+
+      <div class="help-box">
+        <strong>Setup in 1 minute:</strong>
+        <ol>
+          <li>Open <a href="https://developer.spotify.com/dashboard" target="_blank" style="color: #1DB954;">Spotify Developer Dashboard</a> and log in.</li>
+          <li>Click <b>Create app</b> (Name: e.g. "Stream Deck").</li>
+          <li>In <b>Redirect URIs</b>, add: <code>http://127.0.0.1:4388/callback</code></li>
+          <li>Copy your <b>Client ID</b> and <b>Client Secret</b> here and click Connect.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Playlist Selector Card (Shown when connected) -->
+    <div id="playlistCard" class="card hidden">
+      <div class="card-title">
+        <span>Target Playlist</span>
+        <button id="refreshPlaylistsBtn" class="btn-secondary" style="width: auto; padding: 3px 8px; font-size: 10px;">Refresh</button>
+      </div>
+      <div class="field-group">
+        <label for="playlistSelect">Select Playlist for this Button:</label>
+        <select id="playlistSelect">
+          <option value="">-- Choose a playlist --</option>
+        </select>
+      </div>
+
+      <div class="dedup-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        <span><b>Smart Deduplication:</b> If a song is already in this playlist, the button will never add it again.</span>
+      </div>
+    </div>
+
+    <!-- Action Settings Card -->
+    <div id="optionsCard" class="card">
+      <div class="card-title">Button Display</div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showTrackTitleCheckbox" checked />
+        <span>Show track / playlist name on key</span>
+      </label>
+    </div>
+  </div>
+
+  <script src="inspector.js"></script>
+</body>
+</html>
