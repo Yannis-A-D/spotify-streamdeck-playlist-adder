@@ -89,11 +89,18 @@
           <span>Flash dynamic album art on button</span>
         </label>
       </div>
-      <div class="field-group">
+      <div id="trackTitleOptionGroup" class="field-group">
         <label class="checkbox-label">
           <input type="checkbox" id="showTrackTitleCheckbox" checked />
           <span>Show track / playlist name on key</span>
         </label>
+      </div>
+    </div>
+
+    <!-- Playback Info Note (Shown for playback control actions) -->
+    <div id="playbackHintCard" class="card hidden">
+      <div class="dedup-badge" style="margin-top: 0;">
+        <span><b>Tip:</b> Playback controls require Spotify Premium and an active Spotify device. If you upgraded from an older version, click <b>Disconnect</b> and reconnect once to grant playback permission.</span>
       </div>
     </div>
   </div>

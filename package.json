@@ -1,7 +1,7 @@
 {
   "name": "spotify-streamdeck-playlist-adder",
-  "version": "1.0.0",
-  "description": "Stream Deck plugin to add the currently playing Spotify song to a chosen playlist with deduplication check.",
+  "version": "1.1.0",
+  "description": "Stream Deck plugin to control Spotify playback (Play/Pause, Next, Previous) and add the currently playing song to a chosen playlist with deduplication check.",
   "type": "module",
   "scripts": {
     "build": "rollup -c",

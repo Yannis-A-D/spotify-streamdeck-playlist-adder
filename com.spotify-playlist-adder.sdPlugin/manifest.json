@@ -4,7 +4,7 @@
   "Category": "Spotify Playlist Adder",
   "CategoryIcon": "imgs/category-icon",
   "CodePath": "bin/plugin.js",
-  "Description": "Instantly add the currently playing Spotify song to your chosen playlist with smart duplicate prevention.",
+  "Description": "Control Spotify playback (Play/Pause, Next, Previous) and instantly add the currently playing song to your chosen playlist with smart duplicate prevention.",
   "Icon": "imgs/plugin-icon",
   "Name": "Spotify Playlist Adder",
   "SDKVersion": 2,
@@ -25,7 +25,7 @@
     "MinimumVersion": "6.5"
   },
   "UUID": "com.spotify-playlist-adder",
-  "Version": "1.0.0.0",
+  "Version": "1.1.0.0",
   "Actions": [
     {
       "UUID": "com.spotify-playlist-adder.add",
@@ -39,6 +39,64 @@
       "States": [
         {
           "Image": "imgs/actions/add-to-playlist",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ]
+    },
+    {
+      "UUID": "com.spotify-playlist-adder.play-pause",
+      "Name": "Play / Pause",
+      "Tooltip": "Toggle Spotify playback between play and pause.",
+      "Icon": "imgs/actions/play",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/inspector.html",
+      "States": [
+        {
+          "Image": "imgs/actions/play",
+          "Name": "Paused",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        },
+        {
+          "Image": "imgs/actions/pause",
+          "Name": "Playing",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ]
+    },
+    {
+      "UUID": "com.spotify-playlist-adder.next",
+      "Name": "Next Track",
+      "Tooltip": "Skip to the next song on Spotify.",
+      "Icon": "imgs/actions/next-track",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/inspector.html",
+      "States": [
+        {
+          "Image": "imgs/actions/next-track",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ]
+    },
+    {
+      "UUID": "com.spotify-playlist-adder.previous",
+      "Name": "Previous Track",
+      "Tooltip": "Skip back to the previous song (or restart current song) on Spotify.",
+      "Icon": "imgs/actions/previous-track",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/inspector.html",
+      "States": [
+        {
+          "Image": "imgs/actions/previous-track",
           "TitleAlignment": "bottom",
           "FontSize": 9
         }

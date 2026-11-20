@@ -20,6 +20,19 @@ export type SpotifyActionSettings = JsonObject & {
   showAlbumArt?: boolean;
 };
 
+export type PlaybackActionSettings = JsonObject & {
+  showAlbumArt?: boolean;
+};
+
+export interface SpotifyDevice {
+  id: string | null;
+  is_active: boolean;
+  is_restricted: boolean;
+  name: string;
+  type: string;
+  volume_percent: number | null;
+}
+
 export interface SpotifyTrack {
   id: string;
   name: string;
@@ -40,6 +53,8 @@ export interface SpotifyPlaybackResponse {
   is_playing: boolean;
   item: SpotifyTrack | null;
   currently_playing_type: string;
+  progress_ms?: number | null;
+  device?: SpotifyDevice;
 }
 
 export interface SpotifyPlaylistItem {

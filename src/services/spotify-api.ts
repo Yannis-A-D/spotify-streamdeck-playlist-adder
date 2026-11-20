@@ -13,10 +13,41 @@ interface PlaylistCacheEntry {
   timestamp: number;
 }
 
+export class SpotifyApiError extends Error {
+  public readonly status: number;
+  public readonly reason?: string;
+
+  constructor(message: string, status: number, reason?: string) {
+    super(message);
+    this.name = "SpotifyApiError";
+    this.status = status;
+    this.reason = reason;
+  }
+}
+
+async function createSpotifyApiError(actionLabel: string, response: Response): Promise<SpotifyApiError> {
+  const errorText = await response.text();
+  let reason: string | undefined;
+  let apiMessage = errorText;
+
+  try {
+    const parsed = JSON.parse(errorText) as { error?: { message?: string; reason?: string } };
+    if (parsed?.error) {
+      reason = parsed.error.reason;
+      apiMessage = parsed.error.message || errorText;
+    }
+  } catch {
+    // Non-JSON response body
+  }
+
+  return new SpotifyApiError(`${actionLabel} (${response.status}): ${apiMessage}`, response.status, reason);
+}
+
 export class SpotifyApi {
   private static readonly SCOPES = [
     "user-read-currently-playing",
     "user-read-playback-state",
+    "user-modify-playback-state",
     "user-read-private",
     "playlist-read-private",
     "playlist-read-collaborative",
@@ -192,6 +223,132 @@ export class SpotifyApi {
   }
 
   /**
+   * Retrieves the full current playback state (playing/paused, active device, track).
+   * Returns null if there is no active Spotify playback session.
+   */
+  public static async getPlaybackState(accessToken: string): Promise<SpotifyPlaybackResponse | null> {
+    const response = await fetch("https://api.spotify.com/v1/me/player?additional_types=track", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw await createSpotifyApiError("Failed to fetch playback state", response);
+    }
+
+    return (await response.json()) as SpotifyPlaybackResponse;
+  }
+
+  /**
+   * Starts or resumes playback on the user's active device.
+   */
+  public static async play(accessToken: string, deviceId?: string): Promise<void> {
+    const url = deviceId
+      ? `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(deviceId)}`
+      : "https://api.spotify.com/v1/me/player/play";
+
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok && response.status !== 204) {
+      throw await createSpotifyApiError("Failed to start playback", response);
+    }
+  }
+
+  /**
+   * Pauses playback on the user's active device.
+   */
+  public static async pause(accessToken: string, deviceId?: string): Promise<void> {
+    const url = deviceId
+      ? `https://api.spotify.com/v1/me/player/pause?device_id=${encodeURIComponent(deviceId)}`
+      : "https://api.spotify.com/v1/me/player/pause";
+
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok && response.status !== 204) {
+      throw await createSpotifyApiError("Failed to pause playback", response);
+    }
+  }
+
+  /**
+   * Toggles between play and pause based on the current Spotify playback state.
+   */
+  public static async togglePlayPause(
+    accessToken: string
+  ): Promise<{ isPlaying: boolean; track: SpotifyTrack | null }> {
+    const state = await this.getPlaybackState(accessToken);
+
+    if (!state) {
+      // No active session reported; attempt to resume playback (will return 404 NO_ACTIVE_DEVICE if none)
+      await this.play(accessToken);
+      return { isPlaying: true, track: null };
+    }
+
+    const deviceId = state.device?.id ?? undefined;
+    if (state.is_playing) {
+      await this.pause(accessToken, deviceId);
+      return { isPlaying: false, track: state.item };
+    } else {
+      await this.play(accessToken, deviceId);
+      return { isPlaying: true, track: state.item };
+    }
+  }
+
+  /**
+   * Skips to the next track in the user's playback queue.
+   */
+  public static async skipToNext(accessToken: string, deviceId?: string): Promise<void> {
+    const url = deviceId
+      ? `https://api.spotify.com/v1/me/player/next?device_id=${encodeURIComponent(deviceId)}`
+      : "https://api.spotify.com/v1/me/player/next";
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok && response.status !== 204) {
+      throw await createSpotifyApiError("Failed to skip to next track", response);
+    }
+  }
+
+  /**
+   * Skips back to the previous track (or restarts the current track).
+   */
+  public static async skipToPrevious(accessToken: string, deviceId?: string): Promise<void> {
+    const url = deviceId
+      ? `https://api.spotify.com/v1/me/player/previous?device_id=${encodeURIComponent(deviceId)}`
+      : "https://api.spotify.com/v1/me/player/previous";
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok && response.status !== 204) {
+      throw await createSpotifyApiError("Failed to skip to previous track", response);
+    }
+  }
+
+  /**
    * Checks if a track (by URI or ID) already exists in the given playlist.
    * Uses cached track set when available to minimize API latency.
    * If checking fails (e.g. permission restriction), returns false gracefully.
@@ -329,7 +486,7 @@ export class SpotifyApi {
    */
   public static generateFeedbackImage(options: {
     albumArtDataUri?: string | null;
-    badge: "success_playlist" | "success_liked" | "duplicate" | "nothing";
+    badge: "success_playlist" | "success_liked" | "duplicate" | "nothing" | "play" | "pause" | "next" | "previous";
     trackTitle?: string;
     artist?: string;
   }): string {
@@ -350,6 +507,29 @@ export class SpotifyApi {
       badgeSvg = `
         <circle cx="116" cy="28" r="18" fill="#f59e0b" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
         <path d="M116 19v10M116 33v2" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>
+      `;
+    } else if (badge === "play") {
+      badgeSvg = `
+        <circle cx="116" cy="28" r="18" fill="#1DB954" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
+        <polygon points="112,20 125,28 112,36" fill="#000"/>
+      `;
+    } else if (badge === "pause") {
+      badgeSvg = `
+        <circle cx="116" cy="28" r="18" fill="#1DB954" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
+        <rect x="110" y="20" width="4" height="16" rx="1" fill="#000"/>
+        <rect x="118" y="20" width="4" height="16" rx="1" fill="#000"/>
+      `;
+    } else if (badge === "next") {
+      badgeSvg = `
+        <circle cx="116" cy="28" r="18" fill="#1DB954" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
+        <polygon points="107,21 118,28 107,35" fill="#000"/>
+        <rect x="120" y="21" width="3.5" height="14" rx="1" fill="#000"/>
+      `;
+    } else if (badge === "previous") {
+      badgeSvg = `
+        <circle cx="116" cy="28" r="18" fill="#1DB954" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.6))"/>
+        <rect x="108.5" y="21" width="3.5" height="14" rx="1" fill="#000"/>
+        <polygon points="125,21 114,28 125,35" fill="#000"/>
       `;
     }
 

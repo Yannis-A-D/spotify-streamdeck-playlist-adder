@@ -1,11 +1,11 @@
 # Spotify Playlist Adder — Stream Deck Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v1.0.0-1DB954.svg)](https://github.com/Yannis-A-D/spotify-streamdeck-playlist-adder/releases/latest)
+[![Release](https://img.shields.io/badge/Release-v1.1.0-1DB954.svg)](https://github.com/Yannis-A-D/spotify-streamdeck-playlist-adder/releases/latest)
 [![Stream Deck SDK](https://img.shields.io/badge/Stream%20Deck-SDK%20v2-0078D4.svg)](https://docs.elgato.com/)
 [![Spotify Web API](https://img.shields.io/badge/Spotify-Web%20API-1DB954.svg)](https://developer.spotify.com/)
 
-An Elgato Stream Deck plugin that lets you add the song currently playing on Spotify to a pre-selected playlist with a single button press.
+An Elgato Stream Deck plugin that lets you control Spotify playback (**Play / Pause**, **Next Track**, **Previous Track**) and add the currently playing song to a pre-selected playlist with a single button press.
 
 **Smart Deduplication:** If the song is already in the playlist, it will **not** add it a second time and gives you visual feedback on the button so you know it's already saved.
 
@@ -13,6 +13,7 @@ An Elgato Stream Deck plugin that lets you add the song currently playing on Spo
 
 ## Features
 
+- ⏯️ **Playback Controls:** Dedicated Stream Deck keys for **Play / Pause** (with live state syncing), **Next Track** (skip forward), and **Previous Track** (skip back / restart song).
 - 🎵 **One-Click Playlist Saving:** Press the key on your Stream Deck to instantly add the currently playing Spotify song to your chosen playlist.
 - 🖼️ **Dynamic Album Art Flash:** The key dynamically displays the song's actual **high-res album cover** with a glowing green badge when saved!
 - 💚 **Liked Songs (Your Library) Support:** Add directly to your Spotify **"Liked Songs"** (Lieblingssongs) or any custom playlist.

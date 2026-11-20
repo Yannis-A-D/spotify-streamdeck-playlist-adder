@@ -19,6 +19,14 @@ const playlistSelect = document.getElementById("playlistSelect");
 const refreshPlaylistsBtn = document.getElementById("refreshPlaylistsBtn");
 const showTrackTitleCheckbox = document.getElementById("showTrackTitleCheckbox");
 const showAlbumArtCheckbox = document.getElementById("showAlbumArtCheckbox");
+const trackTitleOptionGroup = document.getElementById("trackTitleOptionGroup");
+const playbackHintCard = document.getElementById("playbackHintCard");
+
+const ADD_TO_PLAYLIST_ACTION = "com.spotify-playlist-adder.add";
+
+function isPlaylistAction() {
+  return !actionInfo || actionInfo.action === ADD_TO_PLAYLIST_ACTION;
+}
 
 /**
  * Standard Elgato Property Inspector WebSocket initialization entrypoint.
@@ -33,6 +41,17 @@ window.connectElgatoStreamDeckSocket = function (
   pluginUUID = inPluginUUID;
   actionInfo = JSON.parse(inActionInfo);
   currentSettings = actionInfo.payload.settings || {};
+
+  // Adjust visible cards for playlist vs playback control actions
+  if (!isPlaylistAction()) {
+    playlistCard.classList.add("hidden");
+    if (trackTitleOptionGroup) {
+      trackTitleOptionGroup.classList.add("hidden");
+    }
+    if (playbackHintCard) {
+      playbackHintCard.classList.remove("hidden");
+    }
+  }
 
   // Initialize UI with action settings
   if (currentSettings.showTrackTitleOnKey !== undefined) {
@@ -152,10 +171,14 @@ function updateConnectionState(data) {
       : "Connected";
     disconnectBtn.classList.remove("hidden");
     setupCard.classList.add("hidden");
-    playlistCard.classList.remove("hidden");
 
-    if (data.playlists && data.playlists.length > 0) {
-      populatePlaylists(data.playlists, data.selectedPlaylistId || currentSettings.playlistId);
+    if (isPlaylistAction()) {
+      playlistCard.classList.remove("hidden");
+      if (data.playlists && data.playlists.length > 0) {
+        populatePlaylists(data.playlists, data.selectedPlaylistId || currentSettings.playlistId);
+      }
+    } else {
+      playlistCard.classList.add("hidden");
     }
   } else {
     // Show disconnected status
@@ -270,7 +293,9 @@ playlistSelect.addEventListener("change", () => {
     playlistName = "Liked Songs";
   } else if (playlistId) {
     const selectedOption = playlistSelect.options[playlistSelect.selectedIndex];
-    playlistName = selectedOption ? selectedOption.text.replace(/\s\(\d+\stracks\)$/, "") : "";
+    playlistName = selectedOption
+      ? (selectedOption.dataset.name || selectedOption.text.replace(/\s\(\d+\s(?:tracks|songs)\)$/, ""))
+      : "";
   }
 
   saveActionSettings({
